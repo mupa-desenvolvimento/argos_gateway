@@ -479,7 +479,7 @@ io.on("connection", (socket) => {
       const entry = devices.get(deviceId);
       if (entry) entry.lastSeenAt = Date.now();
       const type = msg.type;
-      if (type === "frame" || type === "screenshot") {
+      if (type === "frame" || type === "screenshot" || type === "exec_result") {
         const sessionId = msg.sessionId;
         if (!isNonEmptyString(sessionId)) return;
         io.to(`session:${sessionId}`).emit("msg", msg);
@@ -513,7 +513,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (["key","text","screenshot","config","tap","long_press","swipe","scroll","app_command"].includes(type)) {
+    if (["key","text","screenshot","config","tap","long_press","swipe","scroll","app_command","exec"].includes(type)) {
       const sessionId = msg.sessionId;
       if (!isNonEmptyString(sessionId)) return;
       const session = sessions.get(sessionId);

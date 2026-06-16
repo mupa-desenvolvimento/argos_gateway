@@ -126,6 +126,26 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,s
 #app-modal .modal .btn{padding:7px 16px;border:none;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:500}
 #app-modal .modal .btn.primary{background:var(--accent);color:#fff}
 #app-modal .modal .btn.ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+
+/* ─── Terminal ─── */
+#term-modal{display:none;position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.7);align-items:center;justify-content:center}
+#term-modal.open{display:flex}
+.term-window{background:var(--bg);border:1px solid var(--border2);border-radius:12px;width:min(720px,94vw);height:min(520px,80vh);display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.6);overflow:hidden}
+.term-header{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border2);font-size:12px;font-weight:500}
+#term-output{flex:1;overflow-y:auto;padding:12px 14px;font-family:'SF Mono',Consolas,'Courier New',monospace;font-size:11.5px;line-height:1.6;white-space:pre-wrap;word-break:break-all;color:var(--text2)}
+#term-output .cmd-line{color:var(--accent);margin-top:8px}
+#term-output .cmd-line:first-child{margin-top:0}
+#term-output .out-line{color:var(--text2)}
+#term-output .err-line{color:var(--danger)}
+#term-output .info-line{color:var(--text3);font-style:italic}
+#term-output .exit-ok{color:var(--success)}
+#term-output .exit-err{color:var(--danger)}
+.term-input-row{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border-top:1px solid var(--border2)}
+.term-prompt{color:var(--accent);font-family:'SF Mono',Consolas,monospace;font-size:13px;font-weight:600}
+.term-input-row input{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--text);font-size:12px;font-family:'SF Mono',Consolas,monospace;outline:none}
+.term-input-row input:focus{border-color:var(--accent)}
+.term-spinner{display:inline-block;width:10px;height:10px;border:2px solid var(--text3);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -209,6 +229,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,s
 
   <div class="sp-divider"></div>
 
+  <div class="sp-section">
+    <div class="sp-section-title">Scripts</div>
+    <button class="sp-btn" onclick="runPreset('setup_argos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>Setup ARGOS Remote</button>
+    <button class="sp-btn" onclick="runPreset('device_info')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Info do Dispositivo</button>
+    <button class="sp-btn" onclick="runPreset('list_packages')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/></svg>Listar Apps Instalados</button>
+    <button class="sp-btn" onclick="runPreset('storage_info')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>Armazenamento</button>
+    <button class="sp-btn" onclick="openTerminal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>Terminal</button>
+  </div>
+
+  <div class="sp-divider"></div>
+
   <div class="sp-section sp-info">
     <div class="sp-section-title" style="padding-left:0">Informações</div>
     <div class="sp-info-row"><span class="label">Device ID</span><span class="value" id="info-id">{{DEVICE_ID_SHORT}}</span></div>
@@ -222,6 +253,37 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,s
     <div class="row">
       <select id="sel-fps" onchange="sendConfig()"><option value="1">1 FPS</option><option value="2">2 FPS</option><option value="5" selected>5 FPS</option><option value="10">10 FPS</option></select>
       <select id="sel-quality" onchange="sendConfig()"><option value="40">40%</option><option value="50">50%</option><option value="60" selected>60%</option><option value="70">70%</option><option value="80">80%</option></select>
+    </div>
+  </div>
+</div>
+
+<!-- Terminal modal -->
+<div id="term-modal">
+  <div class="term-window">
+    <div class="term-header">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--accent)"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      <span>Terminal — {{DEVICE_ID_SHORT}}</span>
+      <div style="margin-left:auto;display:flex;gap:4px">
+        <select id="preset-select" style="background:var(--surface2);color:var(--text);border:1px solid var(--border2);border-radius:4px;padding:3px 6px;font-size:10px;font-family:inherit;cursor:pointer">
+          <option value="">Scripts pré-definidos...</option>
+          <option value="setup_argos">Setup ARGOS Remote</option>
+          <option value="device_info">Info do Dispositivo</option>
+          <option value="list_packages">Listar Apps</option>
+          <option value="storage_info">Armazenamento</option>
+          <option value="logcat_errors">Últimos Erros (logcat)</option>
+          <option value="network_info">Info de Rede</option>
+          <option value="battery_info">Info de Bateria</option>
+          <option value="clear_app_data">Limpar Dados de App...</option>
+        </select>
+        <button class="tb-btn" onclick="clearTerminal()" style="font-size:10px;padding:3px 8px">Limpar</button>
+        <button class="tb-btn" onclick="closeTerminal()" style="font-size:10px;padding:3px 8px">✕</button>
+      </div>
+    </div>
+    <div id="term-output"></div>
+    <div class="term-input-row">
+      <span class="term-prompt">$</span>
+      <input id="term-input" type="text" placeholder="Digite um comando shell..." spellcheck="false" autocomplete="off"/>
+      <button class="tb-btn" style="background:var(--accent);color:#fff;border-radius:4px;padding:4px 12px;font-size:11px" onclick="termExec()">Executar</button>
     </div>
   </div>
 </div>
@@ -294,6 +356,133 @@ img.addEventListener("mouseup",e=>{if(!sessionId||!drag)return;if(lpT){clearTime
 img.addEventListener("mouseleave",()=>{if(lpT){clearTimeout(lpT);lpT=null}drag=null});
 img.addEventListener("wheel",e=>{if(!sessionId)return;e.preventDefault();var p=i2d(e.clientX,e.clientY);socket.emit("msg",{type:"scroll",x:p.x,y:p.y,direction:e.deltaY>0?"down":"up",sessionId})},{passive:false});
 $("app-pkg").addEventListener("keydown",e=>{if(e.key==="Enter"){execAppCommand();e.preventDefault()}if(e.key==="Escape")closeAppModal()});
+
+// ─── Terminal / Shell Exec ───────────────────────────────────────────────────
+var cmdCounter=0,pendingCmds={};
+var PRESETS={
+  setup_argos:{name:"Setup ARGOS Remote",script:`
+PKG=com.mupa.argos.remote
+SVC=$PKG/com.mupa.argos.remote.control.RemoteAccessibilityService
+echo "=== Setup ARGOS Remote ==="
+echo "[1/5] Habilitando Serviço de Acessibilidade..."
+settings put secure enabled_accessibility_services $SVC
+settings put secure accessibility_enabled 1
+echo "[2/5] Desativando otimização de bateria..."
+dumpsys deviceidle whitelist +$PKG
+echo "[3/5] Permitindo exibição sobre outros apps..."
+appops set $PKG SYSTEM_ALERT_WINDOW allow
+echo "[4/5] Concedendo permissão de notificação..."
+pm grant $PKG android.permission.POST_NOTIFICATIONS 2>/dev/null || echo "(Android < 13, não necessário)"
+echo "[5/5] Verificando status..."
+echo "Acessibilidade: $(settings get secure enabled_accessibility_services)"
+echo "Bateria whitelist: $(dumpsys deviceidle whitelist | grep $PKG || echo 'não encontrado')"
+echo ""
+echo "=== Setup completo! ==="
+echo "Ative Auto-Consent no app para consentimento automático do MediaProjection."
+`.trim()},
+  device_info:{name:"Info do Dispositivo",script:`
+echo "=== Informações do Dispositivo ==="
+echo "Fabricante: $(getprop ro.product.manufacturer)"
+echo "Modelo: $(getprop ro.product.model)"
+echo "Android: $(getprop ro.build.version.release) (SDK $(getprop ro.build.version.sdk))"
+echo "Serial: $(getprop ro.serialno)"
+echo "Build: $(getprop ro.build.display.id)"
+echo "Uptime: $(uptime)"
+echo "CPU: $(cat /proc/cpuinfo | grep 'model name' | head -1 | cut -d: -f2 || getprop ro.hardware)"
+echo "RAM Total: $(cat /proc/meminfo | grep MemTotal | awk '{print $2,$3}')"
+echo "RAM Livre: $(cat /proc/meminfo | grep MemAvailable | awk '{print $2,$3}')"
+`.trim()},
+  list_packages:{name:"Listar Apps",script:`pm list packages -3 | sort | sed 's/package://'`},
+  storage_info:{name:"Armazenamento",script:`
+echo "=== Armazenamento ==="
+df -h /data 2>/dev/null || df /data
+echo ""
+echo "=== Top 10 Apps por tamanho ==="
+du -sh /data/data/* 2>/dev/null | sort -rh | head -10
+`.trim()},
+  logcat_errors:{name:"Últimos Erros",script:`logcat -d -t 50 *:E 2>/dev/null | tail -30`},
+  network_info:{name:"Info de Rede",script:`
+echo "=== Rede ==="
+ip addr show wlan0 2>/dev/null | grep "inet " | awk '{print "WiFi IP:", $2}'
+ip addr show eth0 2>/dev/null | grep "inet " | awk '{print "Ethernet IP:", $2}'
+echo "Gateway: $(ip route | grep default | awk '{print $3}')"
+echo "DNS: $(getprop net.dns1) $(getprop net.dns2)"
+echo "WiFi SSID: $(dumpsys wifi | grep 'mWifiInfo' | grep -o 'SSID: [^,]*' | head -1)"
+ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 && echo "Internet: OK" || echo "Internet: SEM CONEXÃO"
+`.trim()},
+  battery_info:{name:"Info de Bateria",script:`dumpsys battery`},
+  clear_app_data:{name:"Limpar Dados de App",script:null}
+};
+
+function openTerminal(){
+  $("term-modal").classList.add("open");
+  $("term-input").focus();
+}
+function closeTerminal(){$("term-modal").classList.remove("open")}
+function clearTerminal(){$("term-output").innerHTML=""}
+
+function termLog(html,cls){
+  var out=$("term-output"),d=document.createElement("div");
+  d.className=cls||"";d.innerHTML=html;out.appendChild(d);out.scrollTop=out.scrollHeight;
+}
+
+function termExec(){
+  var input=$("term-input"),script=input.value.trim();
+  if(!script||!sessionId)return;
+  input.value="";
+  execScript(script);
+}
+
+function execScript(script){
+  if(!sessionId){termLog("Sem sessão ativa. Conecte primeiro.","err-line");return}
+  var id="cmd_"+(++cmdCounter)+"_"+Date.now();
+  termLog("$ "+script.split("\n")[0]+(script.includes("\n")?" <span style='color:var(--text3)'>(script multi-linha)</span>":""),"cmd-line");
+  termLog('<span class="term-spinner"></span>Executando...',"info-line");
+  pendingCmds[id]=$("term-output").lastChild;
+  socket.emit("msg",{type:"exec",script:script,cmdId:id,sessionId:sessionId});
+}
+
+function runPreset(key){
+  if(key==="clear_app_data"){
+    var pkg=prompt("Pacote do app para limpar dados:\n(ex: com.android.chrome)");
+    if(!pkg)return;
+    openTerminal();
+    execScript("pm clear "+pkg.trim());
+    return;
+  }
+  var p=PRESETS[key];
+  if(!p||!p.script)return;
+  openTerminal();
+  execScript(p.script);
+}
+
+$("preset-select").addEventListener("change",function(){
+  var v=this.value;this.selectedIndex=0;
+  if(!v)return;
+  runPreset(v);
+});
+
+$("term-input").addEventListener("keydown",function(e){
+  if(e.key==="Enter"){termExec();e.preventDefault()}
+  if(e.key==="Escape")closeTerminal();
+});
+
+// Handle exec_result from device
+var origMsgHandler=socket.listeners("msg")[0];
+socket.off("msg");
+socket.on("msg",function(m){
+  if(m.type==="exec_result"){
+    var el=pendingCmds[m.cmdId];
+    if(el)el.remove();
+    delete pendingCmds[m.cmdId];
+    if(m.stdout)termLog(m.stdout,"out-line");
+    if(m.error)termLog("Erro: "+m.error,"err-line");
+    var exitCls=m.exitCode===0?"exit-ok":"exit-err";
+    termLog("exit: "+m.exitCode,exitCls);
+    return;
+  }
+  if(origMsgHandler)origMsgHandler(m);
+});
 </script>
 </body>
 </html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARGOS Remote — Administração</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0B1120">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{--bg:#0B1120;--surface:#111827;--surface2:#1F2937;--surface3:#374151;--border:#1F2937;--border2:#374151;--text:#F1F5F9;--text2:#94A3B8;--text3:#64748B;--accent:#2563EB;--accent-hover:#3B82F6;--accent-glow:rgba(37,99,235,0.12);--success:#22C55E;--danger:#EF4444;--warning:#EAB308}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:1100px;margin:0 auto;padding:24px}
+.header{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+.header-logo{width:36px;height:36px;background:var(--accent-glow);border:1px solid rgba(37,99,235,.2);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.header-logo svg{width:20px;height:20px;color:var(--accent)}
+.header h1{font-size:18px;font-weight:700;letter-spacing:-.02em}
+.header .sub{font-size:11px;color:var(--text3);margin-top:1px}
+.header-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.user-badge{font-size:11px;color:var(--text2);background:var(--surface2);padding:5px 12px;border-radius:6px;border:1px solid var(--border2)}
+.h-btn{padding:7px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-size:12px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;text-decoration:none}
+.h-btn:hover{background:var(--surface3);color:var(--text)}
+
+.tabs{display:flex;gap:2px;margin-bottom:20px;background:var(--surface);border-radius:10px;padding:3px;border:1px solid var(--border)}
+.tab{flex:1;text-align:center;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:500;color:var(--text3);transition:all .15s}
+.tab:hover{color:var(--text2)}
+.tab.active{background:var(--accent);color:#fff}
+
+.panel{display:none}
+.panel.active{display:block}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.card h3{font-size:14px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card h3 svg{width:18px;height:18px;color:var(--accent)}
+
+.form-row{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.form-row .field{flex:1;min-width:150px}
+.field label{display:block;font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.field input,.field select{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field input::placeholder{color:var(--text3)}
+.field select{cursor:pointer}
+
+.btn{padding:8px 16px;border:none;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:500;transition:all .15s}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-hover)}
+.btn.danger{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.2)}
+.btn.danger:hover{background:rgba(239,68,68,.2)}
+.btn.ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn.ghost:hover{background:var(--surface2)}
+.btn:disabled{opacity:.4;cursor:default}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--border2);font-weight:600}
+td{padding:10px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+tr:hover td{background:var(--surface2)}
+.role-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.role-badge.master{background:rgba(234,179,8,.1);color:var(--warning)}
+.role-badge.company_admin{background:rgba(37,99,235,.1);color:var(--accent)}
+.role-badge.operator{background:rgba(100,116,139,.1);color:var(--text3)}
+.empty-row{text-align:center;color:var(--text3);padding:24px!important;font-style:italic}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,.4);z-index:100;transform:translateY(100px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.error{border-color:var(--danger);color:var(--danger)}
+.device-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.device-chip{font-size:9px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;color:var(--text3);font-family:'SF Mono',Consolas,monospace}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></div>
+    <div><h1>Administração</h1><div class="sub">ARGOS Remote Gateway</div></div>
+    <div class="header-actions">
+      <span class="user-badge">{{USER_NAME}} &middot; {{USER_ROLE}}</span>
+      <a class="h-btn" href="/">Dispositivos</a>
+      <button class="h-btn" onclick="logout()">Sair</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <div class="tab active" onclick="switchTab('companies')">Empresas</div>
+    <div class="tab" onclick="switchTab('users')">Usuários</div>
+    <div class="tab" onclick="switchTab('groups')">Grupos de Dispositivos</div>
+  </div>
+
+  <!-- COMPANIES -->
+  <div class="panel active" id="panel-companies">
+    <div class="card" id="card-new-company">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Nova Empresa</h3>
+      <div class="form-row">
+        <div class="field"><label>Nome da Empresa</label><input id="company-name" placeholder="Ex: Renner S.A."/></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn primary" onclick="createCompany()">Criar Empresa</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>Empresas Cadastradas</h3>
+      <table><thead><tr><th>Nome</th><th>ID</th><th>Criado em</th><th></th></tr></thead><tbody id="companies-list"></tbody></table>
+    </div>
+  </div>
+
+  <!-- USERS -->
+  <div class="panel" id="panel-users">
+    <div class="card" id="card-new-user">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Novo Usuário</h3>
+      <div class="form-row">
+        <div class="field"><label>Nome</label><input id="user-name" placeholder="Nome completo"/></div>
+        <div class="field"><label>Email</label><input id="user-email" type="email" placeholder="email@empresa.com"/></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Senha</label><input id="user-password" type="password" placeholder="Senha segura"/></div>
+        <div class="field"><label>Perfil</label>
+          <select id="user-role"><option value="company_admin">Admin da Empresa</option><option value="operator">Operador</option></select>
+        </div>
+        <div class="field"><label>Empresa</label><select id="user-company"><option value="">Sem empresa</option></select></div>
+      </div>
+      <button class="btn primary" onclick="createUser()">Criar Usuário</button>
+    </div>
+    <div class="card">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Usuários Cadastrados</h3>
+      <table><thead><tr><th>Nome</th><th>Email</th><th>Perfil</th><th>Empresa</th><th></th></tr></thead><tbody id="users-list"></tbody></table>
+    </div>
+  </div>
+
+  <!-- GROUPS -->
+  <div class="panel" id="panel-groups">
+    <div class="card">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Novo Grupo</h3>
+      <div class="form-row">
+        <div class="field"><label>Nome do Grupo</label><input id="group-name" placeholder="Ex: Loja Centro"/></div>
+        <div class="field" id="group-company-field"><label>Empresa</label><select id="group-company"><option value="">Selecione</option></select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn primary" onclick="createGroup()">Criar Grupo</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>Grupos de Dispositivos</h3>
+      <table><thead><tr><th>Nome</th><th>Empresa</th><th>Dispositivos</th><th></th></tr></thead><tbody id="groups-list"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ROLE="{{USER_ROLE}}";
+let companies=[],users=[],groups=[];
+
+function switchTab(t){
+  document.querySelectorAll(".tab").forEach((el,i)=>{el.classList.toggle("active",el.textContent.toLowerCase().includes(t.substring(0,4)))});
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("panel-"+t).classList.add("active");
+}
+
+function toast(msg,err){
+  var t=document.getElementById("toast");
+  t.textContent=msg;t.className="toast"+(err?" error":"")+" show";
+  setTimeout(()=>t.className="toast",3000);
+}
+
+async function api(url,opts){
+  var r=await fetch(url,{...opts,headers:{"Content-Type":"application/json",...(opts?.headers||{})}});
+  var d=await r.json();
+  if(!r.ok)throw new Error(d.error||"Erro");
+  return d;
+}
+
+async function loadAll(){
+  try{
+    companies=await api("/api/admin/companies");
+    users=await api("/api/admin/users");
+    groups=await api("/api/admin/groups");
+  }catch(e){toast(e.message,true)}
+  renderAll();
+}
+
+function renderAll(){
+  renderCompanies();renderUsers();renderGroups();fillCompanySelects();
+  if(ROLE!=="master"){
+    document.getElementById("card-new-company").style.display="none";
+    document.getElementById("card-new-user").style.display="none";
+    document.getElementById("group-company-field").style.display="none";
+  }
+}
+
+function companyName(id){var c=companies.find(c=>c.id===id);return c?c.name:"—"}
+
+function renderCompanies(){
+  var tb=document.getElementById("companies-list");
+  if(!companies.length){tb.innerHTML='<tr><td colspan="4" class="empty-row">Nenhuma empresa cadastrada</td></tr>';return}
+  tb.innerHTML=companies.map(c=>`<tr>
+    <td style="color:var(--text);font-weight:500">${c.name}</td>
+    <td><span style="font-family:monospace;font-size:10px;color:var(--text3)">${c.id.substring(0,8)}</span></td>
+    <td style="font-size:11px">${c.createdAt?new Date(c.createdAt).toLocaleDateString("pt-BR"):"—"}</td>
+    <td>${ROLE==="master"?'<button class="btn danger" onclick="deleteCompany(\''+c.id+'\')">Excluir</button>':""}</td>
+  </tr>`).join("");
+}
+
+function renderUsers(){
+  var tb=document.getElementById("users-list");
+  if(!users.length){tb.innerHTML='<tr><td colspan="5" class="empty-row">Nenhum usuário cadastrado</td></tr>';return}
+  tb.innerHTML=users.map(u=>`<tr>
+    <td style="color:var(--text);font-weight:500">${u.name}</td>
+    <td>${u.email}</td>
+    <td><span class="role-badge ${u.role}">${u.role==="master"?"Master":u.role==="company_admin"?"Admin":"Operador"}</span></td>
+    <td>${companyName(u.companyId)}</td>
+    <td>${ROLE==="master"&&u.role!=="master"?'<button class="btn danger" onclick="deleteUser(\''+u.id+'\')">Excluir</button>':""}</td>
+  </tr>`).join("");
+}
+
+function renderGroups(){
+  var tb=document.getElementById("groups-list");
+  if(!groups.length){tb.innerHTML='<tr><td colspan="4" class="empty-row">Nenhum grupo cadastrado</td></tr>';return}
+  tb.innerHTML=groups.map(g=>{
+    var chips=g.deviceIds&&g.deviceIds.length?'<div class="device-chips">'+g.deviceIds.map(d=>'<span class="device-chip">'+d.substring(0,10)+'</span>').join("")+"</div>":'<span style="color:var(--text3);font-size:11px">Vazio</span>';
+    return `<tr>
+      <td style="color:var(--text);font-weight:500">${g.name}</td>
+      <td>${companyName(g.companyId)}</td>
+      <td>${chips}</td>
+      <td><button class="btn danger" onclick="deleteGroup('${g.id}')">Excluir</button></td>
+    </tr>`;
+  }).join("");
+}
+
+function fillCompanySelects(){
+  var opts=companies.map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join("");
+  document.getElementById("user-company").innerHTML='<option value="">Sem empresa</option>'+opts;
+  document.getElementById("group-company").innerHTML='<option value="">Selecione</option>'+opts;
+}
+
+async function createCompany(){
+  var name=document.getElementById("company-name").value.trim();
+  if(!name)return toast("Nome obrigatório",true);
+  try{await api("/api/admin/companies",{method:"POST",body:JSON.stringify({name})});document.getElementById("company-name").value="";toast("Empresa criada!");loadAll()}catch(e){toast(e.message,true)}
+}
+
+async function deleteCompany(id){
+  if(!confirm("Excluir empresa? Todos os usuários e grupos vinculados serão removidos."))return;
+  try{await api("/api/admin/companies/"+id,{method:"DELETE"});toast("Empresa excluída");loadAll()}catch(e){toast(e.message,true)}
+}
+
+async function createUser(){
+  var name=document.getElementById("user-name").value.trim();
+  var email=document.getElementById("user-email").value.trim();
+  var password=document.getElementById("user-password").value;
+  var role=document.getElementById("user-role").value;
+  var companyId=document.getElementById("user-company").value||null;
+  if(!name||!email||!password)return toast("Preencha todos os campos",true);
+  try{await api("/api/admin/users",{method:"POST",body:JSON.stringify({name,email,password,role,companyId})});document.getElementById("user-name").value="";document.getElementById("user-email").value="";document.getElementById("user-password").value="";toast("Usuário criado!");loadAll()}catch(e){toast(e.message,true)}
+}
+
+async function deleteUser(id){
+  if(!confirm("Excluir este usuário?"))return;
+  try{await api("/api/admin/users/"+id,{method:"DELETE"});toast("Usuário excluído");loadAll()}catch(e){toast(e.message,true)}
+}
+
+async function createGroup(){
+  var name=document.getElementById("group-name").value.trim();
+  var companyId=document.getElementById("group-company").value||null;
+  if(!name)return toast("Nome obrigatório",true);
+  try{await api("/api/admin/groups",{method:"POST",body:JSON.stringify({name,companyId})});document.getElementById("group-name").value="";toast("Grupo criado!");loadAll()}catch(e){toast(e.message,true)}
+}
+
+async function deleteGroup(id){
+  if(!confirm("Excluir este grupo?"))return;
+  try{await api("/api/admin/groups/"+id,{method:"DELETE"});toast("Grupo excluído");loadAll()}catch(e){toast(e.message,true)}
+}
+
+async function logout(){
+  await fetch("/auth/logout",{method:"POST"});
+  window.location.href="/login";
+}
+
+loadAll();
+</script>
+</body>
+</html>

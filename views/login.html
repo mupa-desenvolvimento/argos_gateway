@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARGOS Remote — Login</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0B1120">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{--bg:#0B1120;--surface:#111827;--surface2:#1F2937;--border:#1F2937;--border2:#374151;--text:#F1F5F9;--text2:#94A3B8;--text3:#64748B;--accent:#2563EB;--accent-hover:#3B82F6;--accent-glow:rgba(37,99,235,0.15);--danger:#EF4444}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px 36px;width:min(420px,92vw);box-shadow:0 16px 64px rgba(0,0,0,.4)}
+.logo{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:32px}
+.logo-icon{width:48px;height:48px;background:var(--accent-glow);border:1px solid rgba(37,99,235,.25);border-radius:12px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:26px;height:26px;color:var(--accent)}
+.logo h1{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.logo .sub{font-size:11px;color:var(--text3);margin-top:2px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.field input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:11px 14px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
+.field input:focus{border-color:var(--accent)}
+.field input::placeholder{color:var(--text3)}
+.btn{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s;margin-top:8px}
+.btn:hover{background:var(--accent-hover);box-shadow:0 0 24px var(--accent-glow)}
+.btn:disabled{opacity:.5;cursor:default}
+.error{color:var(--danger);font-size:12px;text-align:center;margin-top:12px;min-height:18px}
+.footer{text-align:center;margin-top:24px;font-size:10px;color:var(--text3)}
+</style>
+</head>
+<body>
+<div class="login-card">
+  <div class="logo">
+    <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg></div>
+    <div><h1>ARGOS Remote</h1><div class="sub">Acesso ao painel de controle</div></div>
+  </div>
+  <form id="login-form" onsubmit="doLogin(event)">
+    <div class="field">
+      <label>Email</label>
+      <input id="email" type="email" placeholder="seu@email.com" autocomplete="email" required autofocus/>
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input id="password" type="password" placeholder="Sua senha" autocomplete="current-password" required/>
+    </div>
+    <button class="btn" type="submit" id="btn-login">Entrar</button>
+    <div class="error" id="error"></div>
+  </form>
+  <div class="footer">ARGOS Remote Gateway &copy; 2024</div>
+</div>
+<script>
+async function doLogin(e){
+  e.preventDefault();
+  var btn=document.getElementById("btn-login"),err=document.getElementById("error");
+  btn.disabled=true;btn.textContent="Entrando...";err.textContent="";
+  try{
+    var r=await fetch("/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:document.getElementById("email").value,password:document.getElementById("password").value})});
+    var d=await r.json();
+    if(!r.ok){err.textContent=d.error||"Erro ao fazer login";btn.disabled=false;btn.textContent="Entrar";return}
+    window.location.href="/";
+  }catch(ex){err.textContent="Erro de conexão";btn.disabled=false;btn.textContent="Entrar"}
+}
+</script>
+</body>
+</html>

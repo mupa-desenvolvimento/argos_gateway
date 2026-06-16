@@ -21,6 +21,7 @@ const DATABASE_URL = process.env.DATABASE_URL || "";
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
+app.use(express.static(path.join(__dirname, "public")));
 
 const server = http.createServer(app);
 const io = new Server(server, {

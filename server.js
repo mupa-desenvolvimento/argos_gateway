@@ -200,11 +200,11 @@ app.get("/", (_req, res) => {
     const mfg = v.device?.manufacturer || "";
     const seen = new Date(v.lastSeenAt).toLocaleString("pt-BR");
     const displayName = (mfg ? mfg + " " : "") + model;
-    cards.push(`<a class="device-card" href="/device_id/${deviceId}" data-status="online" data-name="${displayName}" data-id="${deviceId}">
+    cards.push(`<div class="device-card" onclick="openDevice('/device_id/${deviceId}')" data-status="online" data-name="${displayName}" data-id="${deviceId}">
       <span class="badge online">Online</span>
       <div class="top"><div class="icon">${svgDevice}</div><div><div class="name">${displayName}</div><div class="id">${deviceId}</div></div></div>
       <div class="bottom"><div class="dot on"></div>Conectado &middot; ${seen}</div>
-    </a>`);
+    </div>`);
   }
   // Offline (known but not connected)
   for (const [deviceId, v] of knownDevices.entries()) {
@@ -213,11 +213,11 @@ app.get("/", (_req, res) => {
     const mfg = v.device?.manufacturer || "";
     const seen = new Date(v.lastSeenAt).toLocaleString("pt-BR");
     const displayName = (mfg ? mfg + " " : "") + model;
-    cards.push(`<a class="device-card offline" href="/device_id/${deviceId}" data-status="offline" data-name="${displayName}" data-id="${deviceId}">
+    cards.push(`<div class="device-card offline" onclick="openDevice('/device_id/${deviceId}')" data-status="offline" data-name="${displayName}" data-id="${deviceId}">
       <span class="badge offline">Offline</span>
       <div class="top"><div class="icon">${svgDevice}</div><div><div class="name">${displayName}</div><div class="id">${deviceId}</div></div></div>
       <div class="bottom"><div class="dot off"></div>Última vez &middot; ${seen}</div>
-    </a>`);
+    </div>`);
   }
 
   const content = cards.length > 0

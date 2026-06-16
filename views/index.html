@@ -94,6 +94,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,s
 var currentFilter="all";
 function setFilter(f){currentFilter=f;document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));document.getElementById("f-"+f).classList.add("active");filterDevices(document.querySelector(".search-input").value)}
 function filterDevices(q){q=(q||"").toLowerCase();document.querySelectorAll(".device-card").forEach(c=>{var text=(c.dataset.name+" "+c.dataset.id).toLowerCase();var matchQ=!q||text.includes(q);var matchF=currentFilter==="all"||(currentFilter==="online"&&c.dataset.status==="online")||(currentFilter==="offline"&&c.dataset.status==="offline");c.style.display=(matchQ&&matchF)?"block":"none"})}
+function openDevice(url){window.open(url,"_blank","width=1100,height=750,menubar=no,toolbar=no,location=no,status=no,scrollbars=no,resizable=yes")}
 </script>
 </body>
 </html>

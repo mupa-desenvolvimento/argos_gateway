@@ -245,6 +245,33 @@ app.get("/device_id/:id", (req, res) => {
   res.type("html").send(html);
 });
 
+app.get("/preview/:id", (req, res) => {
+  const deviceId = req.params.id;
+  const token = devToken();
+  const short = deviceId.length > 12 ? deviceId.slice(0, 12) + "…" : deviceId;
+  const html = loadView("preview.html")
+    .replace(/\{\{DEVICE_ID\}\}/g, deviceId)
+    .replace(/\{\{DEVICE_ID_SHORT\}\}/g, short)
+    .replace(/\{\{TOKEN\}\}/g, token);
+  res.type("html").send(html);
+});
+
+app.get("/api/remote/preview/:id", (_req, res) => {
+  const deviceId = _req.params.id;
+  const entry = devices.get(deviceId);
+  const known = knownDevices.get(deviceId);
+  if (!entry && !known) return res.status(404).json({ error: "device_not_found" });
+  const online = !!entry;
+  const device = entry?.device || known?.device || {};
+  res.json({
+    deviceId,
+    online,
+    previewUrl: `/preview/${deviceId}`,
+    device,
+    lastSeenAt: entry?.lastSeenAt || known?.lastSeenAt || null
+  });
+});
+
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 app.get("/api/remote/devices", requireOperatorAuth, (_req, res) => {

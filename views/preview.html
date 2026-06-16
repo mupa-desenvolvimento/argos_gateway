@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Preview — {{DEVICE_ID_SHORT}}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#000;color:#fff;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column;user-select:none}
+#screen-area{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+#screen-area img{max-width:100%;max-height:100%;object-fit:contain;display:none}
+#placeholder{display:flex;flex-direction:column;align-items:center;gap:12px;color:#64748B}
+#placeholder svg{opacity:.2}
+#placeholder .msg{font-size:13px}
+#statusbar{display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#111827;border-top:1px solid #1F2937;font-size:10px;color:#64748B;height:24px;flex-shrink:0}
+#statusbar .left,#statusbar .right{display:flex;align-items:center;gap:10px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot.off{background:#EF4444}.dot.on{background:#22C55E}.dot.wait{background:#EAB308;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.4}}
+.badge{position:absolute;top:12px;left:12px;background:rgba(37,99,235,.15);color:#2563EB;font-size:10px;padding:3px 10px;border-radius:4px;font-weight:600;letter-spacing:.04em;z-index:10}
+</style>
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+<div id="screen-area">
+  <span class="badge">PREVIEW</span>
+  <img id="screen" draggable="false"/>
+  <div id="placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg><div class="msg">Aguardando transmissão...</div></div>
+</div>
+<div id="statusbar"><div class="left"><div class="dot off" id="sb-dot"></div><span id="sb-status">Conectando...</span></div><div class="right"><span id="sb-res">—</span><span id="sb-frames">0 frames</span></div></div>
+
+<script>
+const DEVICE_ID="{{DEVICE_ID}}",TOKEN="{{TOKEN}}";
+let sessionId=null,frameCount=0;
+const $=id=>document.getElementById(id),img=$("screen"),ph=$("placeholder");
+
+const socket=io({auth:{token:TOKEN},transports:["websocket"]});
+
+socket.on("connect",()=>{$("sb-dot").className="dot wait";$("sb-status").textContent="Conectado — iniciando preview...";socket.emit("msg",{type:"session_start",deviceId:DEVICE_ID})});
+socket.on("disconnect",()=>{$("sb-dot").className="dot off";$("sb-status").textContent="Desconectado";sessionId=null});
+socket.on("session_started",d=>{sessionId=d.sessionId;$("sb-dot").className="dot on";$("sb-status").textContent="Preview ativo";socket.emit("msg",{type:"config",fps:2,quality:40,sessionId})});
+socket.on("session_error",d=>{$("sb-dot").className="dot off";$("sb-status").textContent=d.error==="device_offline"?"Dispositivo offline":"Erro: "+d.error});
+socket.on("msg",m=>{if((m.type==="frame"||m.type==="screenshot")&&m.image){img.src="data:image/jpeg;base64,"+m.image;img.style.display="block";ph.style.display="none";frameCount++;$("sb-frames").textContent=frameCount+" frames";if(frameCount===1&&img.naturalWidth){$("sb-res").textContent=img.naturalWidth+"×"+img.naturalHeight}}});
+</script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARGOS Remote</title>
+<style>
+:root {
+  --bg: #0B1120;
+  --surface: #111827;
+  --surface2: #1F2937;
+  --surface3: #374151;
+  --border: #1F2937;
+  --border2: #374151;
+  --text: #F1F5F9;
+  --text2: #94A3B8;
+  --text3: #64748B;
+  --accent: #2563EB;
+  --accent-hover: #3B82F6;
+  --accent-glow: rgba(37,99,235,0.12);
+  --success: #22C55E;
+  --danger: #EF4444;
+  --warning: #EAB308;
+  --radius: 10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:1100px;margin:0 auto;padding:28px 24px}
+.header{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.header-logo{width:40px;height:40px;background:var(--accent-glow);border:1px solid rgba(37,99,235,.2);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.header-logo svg{width:22px;height:22px;color:var(--accent)}
+.header h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.header .sub{font-size:12px;color:var(--text3);margin-top:1px}
+.header-actions{margin-left:auto;display:flex;gap:8px}
+.h-btn{padding:7px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-size:12px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
+.h-btn:hover{background:var(--surface3);color:var(--text)}
+.h-btn svg{width:14px;height:14px}
+.stats{display:flex;gap:12px;margin-bottom:20px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex:1;min-width:0}
+.stat .num{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.stat .label{font-size:11px;color:var(--text3);margin-top:2px}
+.stat.online .num{color:var(--success)}
+.stat.offline .num{color:var(--text3)}
+.stat.total .num{color:var(--accent)}
+.search-row{display:flex;gap:10px;margin-bottom:16px;align-items:center}
+.search-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 14px 9px 36px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--text3)}
+.filter-btn{padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;font-family:inherit;cursor:pointer;transition:all .15s}
+.filter-btn:hover,.filter-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.device-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.device-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;text-decoration:none;color:inherit;display:block;position:relative;overflow:hidden}
+.device-card:hover{border-color:var(--accent);background:var(--surface2);box-shadow:0 0 24px var(--accent-glow)}
+.device-card.offline{opacity:.55}
+.device-card.offline:hover{opacity:.8}
+.device-card .top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.device-card .icon{width:40px;height:40px;background:var(--surface2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.device-card .icon svg{width:20px;height:20px;color:var(--accent)}
+.device-card.offline .icon svg{color:var(--text3)}
+.device-card .name{font-weight:600;font-size:13px}
+.device-card .id{font-family:'SF Mono',Consolas,monospace;font-size:10px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+.device-card .bottom{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3)}
+.device-card .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.device-card .dot.on{background:var(--success)}
+.device-card .dot.off{background:var(--text3)}
+.device-card .badge{position:absolute;top:12px;right:12px;font-size:9px;padding:2px 8px;border-radius:4px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.device-card .badge.online{background:rgba(34,197,94,.1);color:var(--success)}
+.device-card .badge.offline{background:rgba(100,116,139,.1);color:var(--text3)}
+.empty{text-align:center;padding:64px 24px;color:var(--text3)}
+.empty svg{margin-bottom:16px;opacity:.15}
+.empty .msg{font-size:15px;margin-bottom:6px;color:var(--text2)}
+.empty .sub{font-size:12px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg></div>
+    <div><h1>ARGOS Remote</h1><div class="sub">Gestão de dispositivos</div></div>
+    <div class="header-actions">
+      <button class="h-btn" onclick="location.reload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>Atualizar</button>
+    </div>
+  </div>
+  {{STATS}}
+  <div class="search-row">
+    <input class="search-input" type="text" placeholder="Buscar dispositivo..." oninput="filterDevices(this.value)"/>
+    <button class="filter-btn active" id="f-all" onclick="setFilter('all')">Todos</button>
+    <button class="filter-btn" id="f-online" onclick="setFilter('online')">Online</button>
+    <button class="filter-btn" id="f-offline" onclick="setFilter('offline')">Offline</button>
+  </div>
+  {{CONTENT}}
+</div>
+<script>
+var currentFilter="all";
+function setFilter(f){currentFilter=f;document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));document.getElementById("f-"+f).classList.add("active");filterDevices(document.querySelector(".search-input").value)}
+function filterDevices(q){q=(q||"").toLowerCase();document.querySelectorAll(".device-card").forEach(c=>{var text=(c.dataset.name+" "+c.dataset.id).toLowerCase();var matchQ=!q||text.includes(q);var matchF=currentFilter==="all"||(currentFilter==="online"&&c.dataset.status==="online")||(currentFilter==="offline"&&c.dataset.status==="offline");c.style.display=(matchQ&&matchF)?"block":"none"})}
+</script>
+</body>
+</html>

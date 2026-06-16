@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARGOS Remote — {{DEVICE_ID_SHORT}}</title>
+<style>
+:root {
+  --bg: #0B1120;
+  --surface: #111827;
+  --surface2: #1F2937;
+  --surface3: #374151;
+  --border: #1F2937;
+  --border2: #374151;
+  --text: #F1F5F9;
+  --text2: #94A3B8;
+  --text3: #64748B;
+  --accent: #2563EB;
+  --accent-hover: #3B82F6;
+  --accent-glow: rgba(37,99,235,0.15);
+  --danger: #EF4444;
+  --danger-hover: #DC2626;
+  --success: #22C55E;
+  --warning: #EAB308;
+  --orange: #F97316;
+  --radius: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;display:flex;user-select:none}
+
+/* ─── Layout ─── */
+#main{flex:1;display:flex;flex-direction:column;min-width:0}
+#screen-area{flex:1;display:flex;align-items:center;justify-content:center;background:#000;position:relative;cursor:crosshair;overflow:hidden}
+#screen-area img{max-width:100%;max-height:100%;object-fit:contain;display:none}
+
+/* ─── Side Panel ─── */
+#side-panel{width:260px;background:var(--surface);border-left:1px solid var(--border2);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+#side-panel.collapsed{width:0;border:none}
+.sp-header{padding:12px 16px;border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:8px}
+.sp-header svg{width:18px;height:18px;color:var(--accent)}
+.sp-header span{font-size:13px;font-weight:600;color:var(--text)}
+.sp-section{padding:8px}
+.sp-section-title{font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);padding:8px 8px 4px;font-weight:600}
+.sp-btn{display:flex;align-items:center;gap:10px;width:100%;padding:8px 12px;background:transparent;border:none;color:var(--text2);border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit;text-align:left;transition:all .15s}
+.sp-btn:hover{background:var(--surface2);color:var(--text)}
+.sp-btn:active{background:var(--surface3)}
+.sp-btn.danger:hover{background:rgba(239,68,68,.1);color:var(--danger)}
+.sp-btn svg{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.sp-btn:hover svg{opacity:1}
+.sp-divider{height:1px;background:var(--border2);margin:4px 8px}
+.sp-info{padding:8px 16px}
+.sp-info-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px}
+.sp-info-row .label{color:var(--text3)}
+.sp-info-row .value{color:var(--text2);font-family:'SF Mono',Consolas,monospace}
+.sp-footer{margin-top:auto;padding:12px 16px;border-top:1px solid var(--border2)}
+.sp-footer select{width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:11px;font-family:inherit;cursor:pointer;outline:none;margin-top:4px}
+.sp-footer .row{display:flex;gap:6px;margin-top:6px}
+.sp-footer .row select{flex:1}
+
+/* Toggle panel button */
+#toggle-panel{position:absolute;right:260px;top:50%;transform:translateY(-50%);z-index:51;width:20px;height:48px;background:var(--surface);border:1px solid var(--border2);border-right:none;border-radius:6px 0 0 6px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text3);transition:right .2s}
+#toggle-panel:hover{color:var(--text);background:var(--surface2)}
+#toggle-panel.shifted{right:0}
+#toggle-panel svg{width:12px;height:12px}
+
+/* ─── Top toolbar ─── */
+#toolbar{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--border2);border-top:none;border-radius:0 0 10px 10px;padding:5px 10px;box-shadow:0 4px 24px rgba(0,0,0,.4);transition:opacity .3s,transform .3s}
+#toolbar.auto-hide{opacity:0;transform:translateX(-50%) translateY(-100%)}
+#toolbar:hover{opacity:1!important;transform:translateX(-50%) translateY(0)!important}
+#toolbar-trigger{position:absolute;top:0;left:0;right:0;height:8px;z-index:49}
+#toolbar-trigger:hover~#toolbar{opacity:1!important;transform:translateX(-50%) translateY(0)!important}
+
+.tb-group{display:flex;align-items:center;gap:2px}
+.tb-sep{width:1px;height:20px;background:var(--border2);margin:0 6px}
+.tb-btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 8px;background:transparent;color:var(--text2);border:none;border-radius:5px;cursor:pointer;font-size:11px;font-family:inherit;white-space:nowrap;transition:all .15s}
+.tb-btn:hover{background:var(--surface2);color:var(--text)}
+.tb-btn:active{background:var(--surface3)}
+.tb-btn.danger{color:var(--danger)}
+.tb-btn.danger:hover{background:rgba(239,68,68,.1)}
+.tb-btn svg{width:14px;height:14px;flex-shrink:0}
+.tb-select{background:var(--surface2);color:var(--text);border:1px solid var(--border2);border-radius:5px;padding:3px 5px;font-size:10px;font-family:inherit;cursor:pointer;outline:none}
+.tb-label{font-size:10px;color:var(--text3);margin-right:2px}
+
+/* ─── Status ─── */
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.off{background:var(--danger)}.dot.on{background:var(--success)}.dot.wait{background:var(--warning);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.4}}
+
+#statusbar{display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--surface);border-top:1px solid var(--border2);font-size:10px;color:var(--text3);flex-shrink:0;height:26px}
+#statusbar .left,#statusbar .right{display:flex;align-items:center;gap:10px}
+
+/* ─── Placeholder ─── */
+#placeholder{display:flex;flex-direction:column;align-items:center;gap:16px;color:var(--text3)}
+#placeholder svg{opacity:.2}
+#placeholder .msg{font-size:14px}
+
+/* ─── Tap ring ─── */
+.tap-ring{position:absolute;width:36px;height:36px;border-radius:50%;border:2px solid var(--accent);background:var(--accent-glow);pointer-events:none;transform:translate(-50%,-50%);animation:tapPulse .35s ease-out forwards;z-index:20}
+@keyframes tapPulse{0%{transform:translate(-50%,-50%) scale(.5);opacity:1}100%{transform:translate(-50%,-50%) scale(1.2);opacity:0}}
+
+/* ─── Text modal ─── */
+#text-modal{display:none;position:absolute;bottom:36px;left:50%;transform:translateX(-50%);z-index:60;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px;box-shadow:0 8px 32px rgba(0,0,0,.5);width:min(460px,85vw)}
+#text-modal.open{display:flex;gap:6px}
+#text-modal input{flex:1;background:var(--surface2);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;font-size:12px;font-family:inherit;outline:none}
+#text-modal input:focus{border-color:var(--accent)}
+
+/* ─── Connect overlay ─── */
+#connect-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:40;background:rgba(11,17,32,.92)}
+#connect-overlay.hidden{display:none}
+#connect-overlay .title{font-size:20px;font-weight:700;color:#fff;letter-spacing:-.02em}
+#connect-overlay .device-id{font-family:'SF Mono',Consolas,monospace;font-size:12px;color:var(--text3);background:var(--surface2);padding:6px 16px;border-radius:6px;border:1px solid var(--border2)}
+.connect-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3)}
+.connect-btn{padding:10px 32px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;letter-spacing:-.01em}
+.connect-btn:hover{background:var(--accent-hover);box-shadow:0 0 20px var(--accent-glow)}
+.connect-btn:disabled{opacity:.4;cursor:default}
+#error-msg{color:var(--danger);font-size:11px;max-width:380px;text-align:center}
+
+/* ─── App shortcut modal ─── */
+#app-modal{display:none;position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.6);align-items:center;justify-content:center}
+#app-modal.open{display:flex}
+#app-modal .modal{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:20px;width:min(400px,90vw);box-shadow:0 16px 48px rgba(0,0,0,.5)}
+#app-modal .modal h3{font-size:14px;margin-bottom:12px;font-weight:600}
+#app-modal .modal input{width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:8px 12px;font-size:12px;font-family:inherit;outline:none;margin-bottom:8px}
+#app-modal .modal input:focus{border-color:var(--accent)}
+#app-modal .modal .btns{display:flex;gap:8px;justify-content:flex-end}
+#app-modal .modal .btn{padding:7px 16px;border:none;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:500}
+#app-modal .modal .btn.primary{background:var(--accent);color:#fff}
+#app-modal .modal .btn.ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+</style>
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+<div id="connect-overlay">
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+  <div class="title">ARGOS Remote</div>
+  <div class="device-id">{{DEVICE_ID}}</div>
+  <div class="connect-status"><div class="dot" id="overlay-dot"></div><span id="overlay-status">Conectando ao gateway...</span></div>
+  <button class="connect-btn" id="btn-connect" disabled onclick="toggleSession()">Conectar</button>
+  <div id="error-msg"></div>
+</div>
+
+<div id="main">
+  <div id="screen-area">
+    <div id="toolbar-trigger"></div>
+    <div id="toolbar" class="auto-hide">
+      <div class="tb-group"><div class="dot on" id="tb-dot"></div><span style="font-size:10px;color:var(--text3);margin:0 4px" id="tb-device">{{DEVICE_ID_SHORT}}</span></div>
+      <div class="tb-sep"></div>
+      <div class="tb-group">
+        <button class="tb-btn" onclick="sendKey('home')" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></button>
+        <button class="tb-btn" onclick="sendKey('back')" title="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+        <button class="tb-btn" onclick="sendKey('recents')" title="Recents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-group">
+        <button class="tb-btn" onclick="toggleTextModal()" title="Teclado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg></button>
+        <button class="tb-btn" onclick="toggleFullscreen()" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
+      </div>
+      <div class="tb-sep"></div>
+      <button class="tb-btn danger" onclick="toggleSession()">Desconectar</button>
+    </div>
+    <img id="screen" draggable="false"/>
+    <div id="placeholder"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg><div class="msg">Aguardando conexão...</div></div>
+    <div id="text-modal"><input id="text-input" type="text" placeholder="Digite e pressione Enter..." onkeydown="if(event.key==='Enter'){sendText();event.preventDefault()}"/><button class="tb-btn" style="background:var(--accent);color:#fff;border-radius:6px" onclick="sendText()">Enviar</button><button class="tb-btn" onclick="toggleTextModal()">✕</button></div>
+  </div>
+  <div id="statusbar"><div class="left"><div class="dot on" id="sb-dot"></div><span id="sb-status">Desconectado</span></div><div class="right"><span id="sb-resolution">—</span><span id="sb-frames">0 frames</span><span id="sb-latency">—</span></div></div>
+</div>
+
+<button id="toggle-panel" onclick="togglePanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+
+<div id="side-panel">
+  <div class="sp-header">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+    <span>Comandos</span>
+  </div>
+
+  <div class="sp-section">
+    <div class="sp-section-title">Navegação</div>
+    <button class="sp-btn" onclick="sendKey('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Home</button>
+    <button class="sp-btn" onclick="sendKey('back')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Voltar</button>
+    <button class="sp-btn" onclick="sendKey('recents')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Recentes</button>
+    <button class="sp-btn" onclick="sendKey('notifications')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Notificações</button>
+  </div>
+
+  <div class="sp-divider"></div>
+
+  <div class="sp-section">
+    <div class="sp-section-title">Aplicativos</div>
+    <button class="sp-btn" onclick="openAppModal('open')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/></svg>Abrir App...</button>
+    <button class="sp-btn" onclick="openAppModal('restart')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>Reiniciar App...</button>
+  </div>
+
+  <div class="sp-divider"></div>
+
+  <div class="sp-section">
+    <div class="sp-section-title">Sistema</div>
+    <button class="sp-btn" onclick="sendCommand('reboot')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>Reiniciar Dispositivo</button>
+    <button class="sp-btn" id="btn-kiosk" onclick="sendCommand('toggle_kiosk')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Ativar Kiosk</button>
+    <button class="sp-btn" onclick="sendCommand('screenshot')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>Capturar Tela</button>
+    <button class="sp-btn" onclick="sendKey('power_dialog')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 11-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>Menu Power</button>
+  </div>
+
+  <div class="sp-divider"></div>
+
+  <div class="sp-section">
+    <div class="sp-section-title">Teclado</div>
+    <button class="sp-btn" onclick="toggleTextModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>Enviar Texto</button>
+  </div>
+
+  <div class="sp-divider"></div>
+
+  <div class="sp-section sp-info">
+    <div class="sp-section-title" style="padding-left:0">Informações</div>
+    <div class="sp-info-row"><span class="label">Device ID</span><span class="value" id="info-id">{{DEVICE_ID_SHORT}}</span></div>
+    <div class="sp-info-row"><span class="label">Resolução</span><span class="value" id="info-res">—</span></div>
+    <div class="sp-info-row"><span class="label">Frames</span><span class="value" id="info-frames">0</span></div>
+    <div class="sp-info-row"><span class="label">Latência</span><span class="value" id="info-latency">—</span></div>
+  </div>
+
+  <div class="sp-footer">
+    <div class="sp-section-title" style="padding:0 0 4px">Qualidade</div>
+    <div class="row">
+      <select id="sel-fps" onchange="sendConfig()"><option value="1">1 FPS</option><option value="2">2 FPS</option><option value="5" selected>5 FPS</option><option value="10">10 FPS</option></select>
+      <select id="sel-quality" onchange="sendConfig()"><option value="40">40%</option><option value="50">50%</option><option value="60" selected>60%</option><option value="70">70%</option><option value="80">80%</option></select>
+    </div>
+  </div>
+</div>
+
+<!-- App shortcut modal -->
+<div id="app-modal">
+  <div class="modal">
+    <h3 id="app-modal-title">Abrir Aplicativo</h3>
+    <input id="app-pkg" type="text" placeholder="Nome do pacote (ex: com.android.settings)"/>
+    <div class="btns">
+      <button class="btn ghost" onclick="closeAppModal()">Cancelar</button>
+      <button class="btn primary" onclick="execAppCommand()">Executar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEVICE_ID="{{DEVICE_ID}}",TOKEN="{{TOKEN}}";
+let sessionId=null,frameCount=0,deviceW=0,deviceH=0,lastFrameTs=0,kioskActive=false;
+const $=id=>document.getElementById(id),img=$("screen"),overlay=$("connect-overlay"),placeholder=$("placeholder"),textModal=$("text-modal");
+let panelVisible=true,appModalMode="open";
+
+function togglePanel(){
+  panelVisible=!panelVisible;
+  $("side-panel").classList.toggle("collapsed",!panelVisible);
+  $("toggle-panel").classList.toggle("shifted",!panelVisible);
+  $("toggle-panel").querySelector("svg").style.transform=panelVisible?"":"rotate(180deg)";
+}
+
+function openAppModal(mode){
+  appModalMode=mode;
+  $("app-modal-title").textContent=mode==="open"?"Abrir Aplicativo":"Reiniciar Aplicativo";
+  $("app-pkg").value="";$("app-pkg").placeholder=mode==="open"?"Pacote (ex: com.android.settings)":"Pacote do app para reiniciar";
+  $("app-modal").classList.add("open");$("app-pkg").focus();
+}
+function closeAppModal(){$("app-modal").classList.remove("open")}
+function execAppCommand(){
+  const pkg=$("app-pkg").value.trim();if(!pkg||!sessionId)return;
+  socket.emit("msg",{type:"app_command",action:appModalMode,package:pkg,sessionId});
+  closeAppModal();
+}
+
+const socket=io({auth:{token:TOKEN},transports:["websocket"]});
+
+socket.on("connect",()=>{setOS("on","Conectado ao gateway");$("btn-connect").disabled=false;$("tb-dot").className="dot on";$("sb-dot").className="dot on";$("sb-status").textContent="Gateway conectado"});
+socket.on("disconnect",()=>{setOS("off","Desconectado");$("btn-connect").disabled=true;$("tb-dot").className="dot off";$("sb-dot").className="dot off";$("sb-status").textContent="Desconectado";sessionId=null;overlay.classList.remove("hidden")});
+socket.on("connect_error",e=>{setOS("off","Erro de conexão");$("error-msg").textContent=e.message});
+socket.on("session_started",d=>{sessionId=d.sessionId;overlay.classList.add("hidden");frameCount=0;$("sb-status").textContent="Sessão ativa";$("sb-frames").textContent="0 frames";$("info-frames").textContent="0"});
+socket.on("session_stopped",()=>{sessionId=null;overlay.classList.remove("hidden");$("btn-connect").textContent="Conectar";$("btn-connect").disabled=false;setOS("on","Sessão encerrada");img.style.display="none";placeholder.style.display="flex";$("sb-status").textContent="Sessão encerrada"});
+socket.on("session_error",d=>{$("error-msg").textContent=d.error==="device_offline"?"Dispositivo offline. Verifique o app ARGOS Remote.":d.error;$("btn-connect").textContent="Conectar";$("btn-connect").disabled=false});
+socket.on("msg",m=>{if((m.type==="frame"||m.type==="screenshot")&&m.image){img.src="data:image/jpeg;base64,"+m.image;img.style.display="block";placeholder.style.display="none";frameCount++;if(!deviceW&&img.naturalWidth){deviceW=img.naturalWidth;deviceH=img.naturalHeight;$("sb-resolution").textContent=deviceW+"×"+deviceH;$("info-res").textContent=deviceW+"×"+deviceH}var now=Date.now();if(lastFrameTs){var d=now-lastFrameTs;$("sb-latency").textContent=d+"ms";$("info-latency").textContent=d+"ms"}lastFrameTs=now;$("sb-frames").textContent=frameCount+" frames";$("info-frames").textContent=frameCount}});
+
+function setOS(s,t){$("overlay-dot").className="dot "+(s==="on"?"on":s==="wait"?"wait":"off");$("overlay-status").textContent=t}
+function toggleSession(){if(sessionId){socket.emit("msg",{type:"session_stop",sessionId})}else{$("btn-connect").textContent="Conectando...";$("btn-connect").disabled=true;$("error-msg").textContent="";setOS("wait","Iniciando sessão...");socket.emit("msg",{type:"session_start",deviceId:DEVICE_ID})}}
+function sendKey(k){if(sessionId)socket.emit("msg",{type:"key",key:k,sessionId})}
+function sendCommand(cmd){if(!sessionId)return;if(cmd==="screenshot"){socket.emit("msg",{type:"screenshot",sessionId})}else if(cmd==="toggle_kiosk"){kioskActive=!kioskActive;$("btn-kiosk").textContent=kioskActive?"Desativar Kiosk":"Ativar Kiosk";socket.emit("msg",{type:"app_command",action:"toggle_kiosk",sessionId})}else{socket.emit("msg",{type:"app_command",action:cmd,sessionId})}}
+function sendConfig(){if(!sessionId)return;socket.emit("msg",{type:"config",fps:parseInt($("sel-fps").value),quality:parseInt($("sel-quality").value),sessionId})}
+function toggleTextModal(){textModal.classList.toggle("open");if(textModal.classList.contains("open"))$("text-input").focus()}
+function sendText(){if(!sessionId)return;var i=$("text-input"),t=i.value.trim();if(!t)return;socket.emit("msg",{type:"text",text:t,mode:"type",sessionId});i.value=""}
+function toggleFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen()}
+
+document.addEventListener("keydown",e=>{if(e.target.tagName==="INPUT")return;if(e.altKey&&e.key==="h"){sendKey("home");e.preventDefault()}if(e.altKey&&e.key==="b"){sendKey("back");e.preventDefault()}if(e.altKey&&e.key==="r"){sendKey("recents");e.preventDefault()}if(e.altKey&&e.key==="t"){toggleTextModal();e.preventDefault()}if(e.key==="F11"){toggleFullscreen();e.preventDefault()}});
+
+function i2d(cx,cy){var r=img.getBoundingClientRect(),w=deviceW||img.naturalWidth||r.width,h=deviceH||img.naturalHeight||r.height;return{x:Math.round((cx-r.left)/r.width*w),y:Math.round((cy-r.top)/r.height*h)}}
+function showTap(cx,cy){var a=$("screen-area"),ar=a.getBoundingClientRect(),r=document.createElement("div");r.className="tap-ring";r.style.left=(cx-ar.left)+"px";r.style.top=(cy-ar.top)+"px";a.appendChild(r);setTimeout(()=>r.remove(),350)}
+var drag=null,dragTime=0,lpT=null;
+img.addEventListener("mousedown",e=>{if(!sessionId)return;e.preventDefault();drag={x:e.clientX,y:e.clientY};dragTime=Date.now();lpT=setTimeout(()=>{if(!drag)return;var p=i2d(drag.x,drag.y);socket.emit("msg",{type:"long_press",x:p.x,y:p.y,sessionId});showTap(drag.x,drag.y);drag=null},600)});
+img.addEventListener("mousemove",e=>{if(!drag)return;if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>10&&lpT){clearTimeout(lpT);lpT=null}});
+img.addEventListener("mouseup",e=>{if(!sessionId||!drag)return;if(lpT){clearTimeout(lpT);lpT=null}var dx=e.clientX-drag.x,dy=e.clientY-drag.y,d=Math.hypot(dx,dy),el=Date.now()-dragTime;if(d<10&&el<500){var p=i2d(e.clientX,e.clientY);socket.emit("msg",{type:"tap",x:p.x,y:p.y,sessionId});showTap(e.clientX,e.clientY)}else if(d>=10){var f=i2d(drag.x,drag.y),t=i2d(e.clientX,e.clientY);socket.emit("msg",{type:"swipe",x1:f.x,y1:f.y,x2:t.x,y2:t.y,duration:Math.min(Math.max(el,100),1000),sessionId})}drag=null});
+img.addEventListener("mouseleave",()=>{if(lpT){clearTimeout(lpT);lpT=null}drag=null});
+img.addEventListener("wheel",e=>{if(!sessionId)return;e.preventDefault();var p=i2d(e.clientX,e.clientY);socket.emit("msg",{type:"scroll",x:p.x,y:p.y,direction:e.deltaY>0?"down":"up",sessionId})},{passive:false});
+$("app-pkg").addEventListener("keydown",e=>{if(e.key==="Enter"){execAppCommand();e.preventDefault()}if(e.key==="Escape")closeAppModal()});
+</script>
+</body>
+</html>

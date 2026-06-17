@@ -65,6 +65,8 @@ function verifyPw(password, hash, salt) {
   if (!loadData("groups")) saveData("groups", []);
 })();
 
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
 // ─── Express Setup ───────────────────────────────────────────────────────────
 
 const app = express();
@@ -306,10 +308,10 @@ app.get("/", webAuth, (_req, res) => {
 
   const cards = [];
   for (const [deviceId, v] of devices.entries()) {
-    const model = v.device?.model || "Dispositivo";
-    const mfg = v.device?.manufacturer || "";
+    const model = esc(v.device?.model || "Dispositivo");
+    const mfg = esc(v.device?.manufacturer || "");
     const seen = new Date(v.lastSeenAt).toLocaleString("pt-BR");
-    const alias = v.device?.alias || aliasStore[deviceId] || "";
+    const alias = esc(v.device?.alias || aliasStore[deviceId] || "");
     const hwName = (mfg ? mfg + " " : "") + model;
     const displayName = alias || hwName;
     const subtitle = alias ? `${hwName} · ${deviceId}` : deviceId;
@@ -321,10 +323,10 @@ app.get("/", webAuth, (_req, res) => {
   }
   for (const [deviceId, v] of knownDevices.entries()) {
     if (onlineIds.has(deviceId)) continue;
-    const model = v.device?.model || "Dispositivo";
-    const mfg = v.device?.manufacturer || "";
+    const model = esc(v.device?.model || "Dispositivo");
+    const mfg = esc(v.device?.manufacturer || "");
     const seen = new Date(v.lastSeenAt).toLocaleString("pt-BR");
-    const alias = v.device?.alias || aliasStore[deviceId] || "";
+    const alias = esc(v.device?.alias || aliasStore[deviceId] || "");
     const hwName = (mfg ? mfg + " " : "") + model;
     const displayName = alias || hwName;
     const subtitle = alias ? `${hwName} · ${deviceId}` : deviceId;
@@ -424,7 +426,7 @@ app.get("/api/remote/aliases", apiAuth, (_req, res) => {
 
 app.put("/api/remote/alias/:id", apiAuth, (req, res) => {
   const deviceId = req.params.id;
-  const alias = (req.body?.alias || "").trim();
+  const alias = (req.body?.alias || "").trim().slice(0, 100);
   setAlias(deviceId, alias);
   const entry = devices.get(deviceId);
   if (entry?.device) entry.device.alias = alias;
@@ -570,9 +572,14 @@ io.on("connection", (socket) => {
         if (known) known.health = { ...msg.health, ts: Date.now() };
       }
       if (type === "device_info" && msg.device) {
-        if (entry) entry.device = { ...(entry.device || {}), ...msg.device };
+        const allowed = ["model","manufacturer","android","sdk","serial","ip","mac","wifi_ssid","alias",
+          "accessibility_active","projection_granted","auto_consent","app_version","app_version_code",
+          "ram_total","ram_available","battery_level","battery_status","screen_width","screen_height"];
+        const safe = {};
+        for (const k of allowed) { if (msg.device[k] !== undefined) safe[k] = msg.device[k]; }
+        if (entry) entry.device = { ...(entry.device || {}), ...safe };
         const known = knownDevices.get(deviceId);
-        if (known) known.device = { ...(known.device || {}), ...msg.device };
+        if (known) known.device = { ...(known.device || {}), ...safe };
       }
       if (type === "frame" || type === "screenshot" || type === "exec_result" || type === "alias_updated") {
         const sessionId = msg.sessionId;

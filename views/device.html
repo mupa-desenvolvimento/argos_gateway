@@ -241,11 +241,29 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,s
   <div class="sp-divider"></div>
 
   <div class="sp-section sp-info">
+    <div class="sp-section-title" style="padding-left:0">Alias</div>
+    <div style="display:flex;gap:4px;margin-bottom:8px">
+      <input id="alias-input" type="text" value="{{DEVICE_ALIAS}}" placeholder="Ex: Loja Centro - Caixa 1" style="flex:1;background:var(--surface2);color:var(--text);border:1px solid var(--border2);border-radius:5px;padding:5px 8px;font-size:11px;font-family:inherit;outline:none"/>
+      <button onclick="saveAlias()" style="background:var(--accent);color:#fff;border:none;border-radius:5px;padding:5px 10px;font-size:10px;font-family:inherit;cursor:pointer;white-space:nowrap">Salvar</button>
+    </div>
     <div class="sp-section-title" style="padding-left:0">Informações</div>
     <div class="sp-info-row"><span class="label">Device ID</span><span class="value" id="info-id">{{DEVICE_ID_SHORT}}</span></div>
     <div class="sp-info-row"><span class="label">Resolução</span><span class="value" id="info-res">—</span></div>
     <div class="sp-info-row"><span class="label">Frames</span><span class="value" id="info-frames">0</span></div>
     <div class="sp-info-row"><span class="label">Latência</span><span class="value" id="info-latency">—</span></div>
+  </div>
+
+  <div class="sp-divider"></div>
+
+  <div class="sp-section sp-info" id="health-section">
+    <div class="sp-section-title" style="padding-left:0">ARGOS Remote</div>
+    <div class="sp-info-row"><span class="label">Versão</span><span class="value" id="h-version">—</span></div>
+    <div class="sp-info-row"><span class="label">Accessibility</span><span class="value" id="h-accessibility">—</span></div>
+    <div class="sp-info-row"><span class="label">Projection</span><span class="value" id="h-projection">—</span></div>
+    <div class="sp-info-row"><span class="label">Auto-Consent</span><span class="value" id="h-consent">—</span></div>
+    <div class="sp-info-row"><span class="label">Sessão</span><span class="value" id="h-session">—</span></div>
+    <div class="sp-info-row"><span class="label">RAM</span><span class="value" id="h-ram">—</span></div>
+    <div class="sp-info-row"><span class="label">Família</span><span class="value" id="h-family">—</span></div>
   </div>
 
   <div class="sp-footer">
@@ -303,6 +321,21 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,s
 <script>
 const DEVICE_ID="{{DEVICE_ID}}",TOKEN="{{TOKEN}}";
 let sessionId=null,frameCount=0,deviceW=0,deviceH=0,lastFrameTs=0,kioskActive=false;
+const _initHealth={{HEALTH_JSON}};
+function updateHealthUI(h){
+  if(!h)return;
+  const s=id=>document.getElementById(id);
+  if(h.version)s("h-version").textContent=h.version+(h.version_code?" ("+h.version_code+")":"");
+  s("h-accessibility").innerHTML=h.accessibility_active===true?'<span style="color:var(--success)">Ativo</span>':h.accessibility_active===false?'<span style="color:var(--danger)">Inativo</span>':"—";
+  s("h-projection").innerHTML=h.projection_granted===true?'<span style="color:var(--success)">Concedida</span>':h.projection_granted===false?'<span style="color:var(--warning)">Pendente</span>':"—";
+  s("h-consent").innerHTML=h.auto_consent===true?'<span style="color:var(--success)">Ativo</span>':h.auto_consent===false?'<span style="color:var(--warning)">Desativado</span>':"—";
+  s("h-session").innerHTML=h.session_active?'<span style="color:var(--success)">Ativa</span>':'<span style="color:var(--text3)">Inativa</span>';
+  if(h.ram_avail&&h.ram_total){var pct=((1-h.ram_avail/h.ram_total)*100).toFixed(0);s("h-ram").textContent=pct+"% ("+(h.ram_avail/1048576|0)+"MB livre)";}
+  if(h.device_family)s("h-family").textContent=h.device_family;
+  else if(h.manufacturer)s("h-family").textContent=h.manufacturer+" "+h.model;
+}
+updateHealthUI(_initHealth);
+function saveAlias(){const alias=document.getElementById("alias-input").value.trim();fetch("/api/remote/alias/"+encodeURIComponent(DEVICE_ID),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({alias})}).then(r=>r.json()).then(d=>{if(d.ok&&sessionId){socket.emit("msg",{type:"set_alias",alias,sessionId,deviceId:DEVICE_ID})}}).catch(()=>{})}
 const $=id=>document.getElementById(id),img=$("screen"),overlay=$("connect-overlay"),placeholder=$("placeholder"),textModal=$("text-modal");
 let panelVisible=true,appModalMode="open";
 
@@ -483,6 +516,7 @@ socket.on("msg",function(m){
   }
   if(origMsgHandler)origMsgHandler(m);
 });
+setInterval(function(){fetch("/api/remote/health/"+encodeURIComponent(DEVICE_ID),{credentials:"same-origin"}).then(r=>r.json()).then(d=>{if(d.health)updateHealthUI({...d.device,...d.health,online:d.online});else if(d.device)updateHealthUI({...d.device,online:d.online})}).catch(()=>{})},15000);
 </script>
 </body>
 </html>

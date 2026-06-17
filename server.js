@@ -309,10 +309,13 @@ app.get("/", webAuth, (_req, res) => {
     const model = v.device?.model || "Dispositivo";
     const mfg = v.device?.manufacturer || "";
     const seen = new Date(v.lastSeenAt).toLocaleString("pt-BR");
-    const displayName = (mfg ? mfg + " " : "") + model;
-    cards.push(`<div class="device-card" onclick="openDevice('/device_id/${deviceId}')" data-status="online" data-name="${displayName}" data-id="${deviceId}">
+    const alias = v.device?.alias || aliasStore[deviceId] || "";
+    const hwName = (mfg ? mfg + " " : "") + model;
+    const displayName = alias || hwName;
+    const subtitle = alias ? `${hwName} · ${deviceId}` : deviceId;
+    cards.push(`<div class="device-card" onclick="openDevice('/device_id/${deviceId}')" data-status="online" data-name="${displayName} ${hwName}" data-id="${deviceId}">
       <span class="badge online">Online</span>
-      <div class="top"><div class="icon">${svgDevice}</div><div><div class="name">${displayName}</div><div class="id">${deviceId}</div></div></div>
+      <div class="top"><div class="icon">${svgDevice}</div><div><div class="name">${displayName}</div><div class="id">${subtitle}</div></div></div>
       <div class="bottom"><div class="dot on"></div>Conectado &middot; ${seen}</div>
     </div>`);
   }
@@ -321,10 +324,13 @@ app.get("/", webAuth, (_req, res) => {
     const model = v.device?.model || "Dispositivo";
     const mfg = v.device?.manufacturer || "";
     const seen = new Date(v.lastSeenAt).toLocaleString("pt-BR");
-    const displayName = (mfg ? mfg + " " : "") + model;
-    cards.push(`<div class="device-card offline" onclick="openDevice('/device_id/${deviceId}')" data-status="offline" data-name="${displayName}" data-id="${deviceId}">
+    const alias = v.device?.alias || aliasStore[deviceId] || "";
+    const hwName = (mfg ? mfg + " " : "") + model;
+    const displayName = alias || hwName;
+    const subtitle = alias ? `${hwName} · ${deviceId}` : deviceId;
+    cards.push(`<div class="device-card offline" onclick="openDevice('/device_id/${deviceId}')" data-status="offline" data-name="${displayName} ${hwName}" data-id="${deviceId}">
       <span class="badge offline">Offline</span>
-      <div class="top"><div class="icon">${svgDevice}</div><div><div class="name">${displayName}</div><div class="id">${deviceId}</div></div></div>
+      <div class="top"><div class="icon">${svgDevice}</div><div><div class="name">${displayName}</div><div class="id">${subtitle}</div></div></div>
       <div class="bottom"><div class="dot off"></div>Última vez &middot; ${seen}</div>
     </div>`);
   }
@@ -349,10 +355,32 @@ app.get("/device_id/:id", webAuth, (req, res) => {
   const deviceId = req.params.id;
   const token = devToken(req.user);
   const short = deviceId.length > 12 ? deviceId.slice(0, 12) + "…" : deviceId;
+  const alias = aliasStore[deviceId] || devices.get(deviceId)?.device?.alias || knownDevices.get(deviceId)?.device?.alias || "";
+  const entry = devices.get(deviceId) || knownDevices.get(deviceId) || {};
+  const dev = entry.device || {};
+  const health = entry.health || {};
+  const isOnline = devices.has(deviceId);
+  const healthJson = JSON.stringify({
+    online: isOnline,
+    accessibility_active: health.accessibility_active ?? dev.accessibility_active ?? null,
+    projection_granted: health.projection_granted ?? dev.projection_granted ?? null,
+    auto_consent: health.auto_consent ?? dev.auto_consent ?? null,
+    version: health.version ?? dev.app_version ?? "",
+    version_code: health.version_code ?? dev.app_version_code ?? 0,
+    session_active: health.session_active ?? false,
+    ram_avail: health.ram_avail ?? dev.ram_avail ?? null,
+    ram_total: health.ram_total ?? dev.ram_total ?? null,
+    manufacturer: dev.manufacturer ?? "",
+    model: dev.model ?? "",
+    device_family: dev.device_family ?? "",
+    health_ts: health.ts ?? null,
+  }).replace(/</g, "\\u003c");
   const html = loadView("device.html")
     .replace(/\{\{DEVICE_ID\}\}/g, deviceId)
     .replace(/\{\{DEVICE_ID_SHORT\}\}/g, short)
-    .replace(/\{\{TOKEN\}\}/g, token);
+    .replace(/\{\{TOKEN\}\}/g, token)
+    .replace(/\{\{DEVICE_ALIAS\}\}/g, alias)
+    .replace(/\{\{HEALTH_JSON\}\}/g, healthJson);
   res.type("html").send(html);
 });
 
@@ -375,6 +403,57 @@ app.get("/api/remote/preview/:id", (_req, res) => {
   const online = !!entry;
   const device = entry?.device || known?.device || {};
   res.json({ deviceId, online, previewUrl: `/preview/${deviceId}`, device, lastSeenAt: entry?.lastSeenAt || known?.lastSeenAt || null });
+});
+
+// Alias management
+const aliasStore = loadData("aliases") || {};
+
+function getAlias(deviceId) {
+  return aliasStore[deviceId] || "";
+}
+
+function setAlias(deviceId, alias) {
+  if (alias) aliasStore[deviceId] = alias.trim();
+  else delete aliasStore[deviceId];
+  saveData("aliases", aliasStore);
+}
+
+app.get("/api/remote/aliases", apiAuth, (_req, res) => {
+  res.json(aliasStore);
+});
+
+app.put("/api/remote/alias/:id", apiAuth, (req, res) => {
+  const deviceId = req.params.id;
+  const alias = (req.body?.alias || "").trim();
+  setAlias(deviceId, alias);
+  const entry = devices.get(deviceId);
+  if (entry?.device) entry.device.alias = alias;
+  const known = knownDevices.get(deviceId);
+  if (known?.device) known.device.alias = alias;
+  res.json({ ok: true, deviceId, alias });
+});
+
+app.get("/api/remote/health/:id", apiAuth, (req, res) => {
+  const deviceId = req.params.id;
+  const entry = devices.get(deviceId) || knownDevices.get(deviceId);
+  if (!entry) return res.status(404).json({ error: "device_not_found" });
+  const health = entry.health || {};
+  const device = entry.device || {};
+  res.json({
+    deviceId,
+    online: devices.has(deviceId),
+    health,
+    device: {
+      accessibility_active: device.accessibility_active,
+      projection_granted: device.projection_granted,
+      auto_consent: device.auto_consent,
+      app_version: device.app_version,
+      app_version_code: device.app_version_code,
+      manufacturer: device.manufacturer,
+      model: device.model,
+      device_family: device.device_family,
+    },
+  });
 });
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
@@ -479,7 +558,23 @@ io.on("connection", (socket) => {
       const entry = devices.get(deviceId);
       if (entry) entry.lastSeenAt = Date.now();
       const type = msg.type;
-      if (type === "frame" || type === "screenshot" || type === "exec_result") {
+      if (type === "alias_updated") {
+        const known = knownDevices.get(deviceId);
+        if (known?.device) known.device.alias = msg.alias;
+        const entry2 = devices.get(deviceId);
+        if (entry2?.device) entry2.device.alias = msg.alias;
+      }
+      if (type === "heartbeat" && msg.health) {
+        if (entry) entry.health = { ...msg.health, ts: Date.now() };
+        const known = knownDevices.get(deviceId);
+        if (known) known.health = { ...msg.health, ts: Date.now() };
+      }
+      if (type === "device_info" && msg.device) {
+        if (entry) entry.device = { ...(entry.device || {}), ...msg.device };
+        const known = knownDevices.get(deviceId);
+        if (known) known.device = { ...(known.device || {}), ...msg.device };
+      }
+      if (type === "frame" || type === "screenshot" || type === "exec_result" || type === "alias_updated") {
         const sessionId = msg.sessionId;
         if (!isNonEmptyString(sessionId)) return;
         io.to(`session:${sessionId}`).emit("msg", msg);
@@ -513,7 +608,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (["key","text","screenshot","config","tap","long_press","swipe","scroll","app_command","exec"].includes(type)) {
+    if (["key","text","screenshot","config","tap","long_press","swipe","scroll","app_command","exec","set_alias"].includes(type)) {
       const sessionId = msg.sessionId;
       if (!isNonEmptyString(sessionId)) return;
       const session = sessions.get(sessionId);
